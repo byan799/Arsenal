@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>D3 Drag</title>
+	<style>
+		rect {
+			fill: steelblue;
+			stroke: steelblue;
+			stroke-width: 1px;
+		}
+	</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<div id="drag-demo"></div>
+<script type="text/javascript">
+	d3.select('#drag-demo').append('svg')
+		.attr('width', 800)
+		.attr('height', 800)
+	let svgGroup = d3.select('svg')
+			.append('g')
+	svgGroup.append('rect')
+	 .attr('width', 80)
+	 .attr('height', 80)
+	 .attr('x', 20)
+	 .attr('y', 20)
+	let svgPosition = [{x: 0, y: 0}]
+	let drag = d3.behavior.drag()
+				.on('drag', function(d) {
+					d.x += d3.event.dx
+					d.y += d3.event.dy
+					d3.select(this).attr('transform', 'translate(' + d.x + ',' + d.y + ')') 
+				})
+	svgGroup.data(svgPosition).call(drag)
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+	"frontendHost": [
+		{
+			"id": "fhost1",
+			"ip": "192.168.3.15"
+		},
+		{
+			"id": "fhost2",
+			"ip": "192.168.3.16"
+		},
+		{
+			"id": "fhost3",
+			"ip": "192.168.3.17"
+		}
+	],
+	"backendHost": [
+		{
+			"id": "bhost1",
+			"ip": "192.168.115.19"
+		},
+		{
+			"id": "bhost2",
+			"ip": "192.168.115.20"
+		},
+		{
+			"id": "bhost3",
+			"ip": "192.168.115.28"
+		}
+	],
+	"servingHost": [
+		{
+			"id": "shost1",
+			"ip": "192.168.227.1"
+		},
+		{
+			"id": "shost2",
+			"ip": "192.168.227.2"
+		},
+		{
+			"id": "shost3",
+			"ip": "192.168.227.16"
+		}
+	],
+	"link": [
+		{
+			"src": "fhost1",
+			"dst": "bhost1"
+		},
+		{
+			"src": "fhost1",
+			"dst": "bhost2"
+		},
+		{
+			"src": "fhost1",
+			"dst": "bhost3"
+		},
+		{
+			"src": "fhost2",
+			"dst": "bhost2"
+		},
+		{
+			"src": "fhost3",
+			"dst": "bhost3"
+		}
+	] 
+}

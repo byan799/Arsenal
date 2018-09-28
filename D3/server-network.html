@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="https://d3js.org/d3.v3.min.js"></script>
+	<style type="text/css">
+		.throughput-rect {
+			stroke: none;
+			fill: #0088cc;
+		}
+		.triangle {
+			stroke: none;
+			fill: #0088cc;
+		}
+		.links {
+			stroke: #0088cc;
+			fill: none;
+			stroke-width: 1px;
+		}
+	</style>
+</head>
+<body>
+	<div id="network-graph">
+	</div>
+	<script type="text/javascript">
+		// define drawing rule
+		let graphRule = {
+			svg: {
+				width: 800,
+				height: 800
+			},
+			throughput: {
+				rectWidth: 26,
+				rectHeight: 60,
+				rectMargin: 80,
+				arrowEdge: 8
+			},
+			nodeRect: {
+				width: 70,
+				height: 70
+			},
+			nodeDefault: {
+				frontend: {
+					startX: 0,
+					startY: 150,
+					margin: 100
+				},
+				backend: {
+					startX: 0,
+					startY: 350,
+					margin: 100
+				},
+				serving: {
+					startX: 0,
+					startY: 550,
+					margin: 100
+				}
+			}
+		}
+		let data = {
+			frontendHost: [],
+			backendHost: [],
+			servingHost: []
+		}
+		let nodes = []
+		let links = []
+		// main
+		d3.json('http://localhost:8000/server-network.json', function (err, json) {
+			parseData(json)
+			setPosition()
+			drawNetworkGraph()
+		})
+		// parse data
+		function parseData (json) {
+			for (let i in json.frontendHost) {
+				let node = {}
+				node.links = []
+				node.id = json.frontendHost[i].id
+				node.ip = json.frontendHost[i].ip
+				for (let j in json.link) {
+					if (node.id == json.link[j].src) {
+						node.links.push(json.link[j].dst)
+					}
+				}
+				data.frontendHost.push(node)
+			}
+			for (let i in json.backendHost) {
+				let node = {}
+				node.links = []
+				node.id = json.backendHost[i].id
+				node.ip = json.backendHost[i].ip
+				for (let j in json.link) {
+					if (node.id == json.link[j].dst) {
+						node.links.push(json.link[j].src)
+					}
+				}
+				data.backendHost.push(node)
+			}
+			for (let i in json.servingHost) {
+				let node = {}
+				node.id = json.servingHost[i].id
+				node.ip = json.servingHost[i].ip
+				data.servingHost.push(node)
+			}
+		}
+		// determine default rule by node number, assuming that of each type is less than 5
+		function setDefaultRule (type, len) {
+			let startX = 0
+			let margin = 100
+			switch (len) {
+				case 1:
+					startX = (graphRule.svg.width - graphRule.nodeRect.width) / 2
+					break
+				case 2:
+					margin = 200
+					startX = (graphRule.svg.width - margin - graphRule.nodeRect.width * 2) / 2
+					break
+				case 3:
+					margin = 200
+					startX = (graphRule.svg.width - margin * 2 - graphRule.nodeRect.width * 3) / 2
+					break
+				case 4:
+					margin = 120
+					startX = (graphRule.svg.width - margin * 3 - graphRule.nodeRect.width * 4) / 2
+					break
+				case 5:
+					margin = 90
+					startX = (graphRule.svg.width - margin * 4 - graphRule.nodeRect.width * 5) / 2
+					break
+				default:
+					break
+			}
+			if (type == 'frontend') {
+				graphRule.nodeDefault.frontend.startX = startX
+				graphRule.nodeDefault.frontend.margin = margin
+			} else if (type == 'backend') {
+				graphRule.nodeDefault.backend.startX = startX
+				graphRule.nodeDefault.backend.margin = margin
+			} else if (type == 'serving') {
+				graphRule.nodeDefault.serving.startX = startX
+				graphRule.nodeDefault.serving.margin = margin
+			}
+		}
+		// set nodes & links position
+		function setPosition () {
+			setDefaultRule('frontend', data.frontendHost.length)
+			setDefaultRule('backend', data.backendHost.length)
+			setDefaultRule('serving', data.servingHost.length)
+			// nodes
+			for (let i = 0; i < data.frontendHost.length; i++) {
+				let node = {}
+				node.id = data.frontendHost[i].id
+				node.type = 'frontend'
+				node.positionX = graphRule.nodeDefault.frontend.startX + (graphRule.nodeRect.width + graphRule.nodeDefault.frontend.margin) * i
+				node.positionY = graphRule.nodeDefault.frontend.startY
+				data.frontendHost[i].position = {x: node.positionX, y: node.positionY}
+				nodes.push(node) 
+			}
+			for (let i = 0; i < data.backendHost.length; i++) {
+				let node = {}
+				node.id = data.backendHost[i].id
+				node.type = 'backend'
+				node.positionX = graphRule.nodeDefault.backend.startX + (graphRule.nodeRect.width + graphRule.nodeDefault.backend.margin) * i
+				node.positionY = graphRule.nodeDefault.backend.startY
+				data.backendHost[i].position = {x: node.positionX, y: node.positionY}
+				nodes.push(node)
+			}
+			for (let i = 0; i < data.servingHost.length; i++) {
+				let node = {}
+				node.id = data.servingHost[i].id
+				node.type = 'serving'
+				node.positionX = graphRule.nodeDefault.serving.startX + (graphRule.nodeRect.width + graphRule.nodeDefault.serving.margin) * i
+				node.positionY = graphRule.nodeDefault.serving.startY
+				data.servingHost[i].position = {x: node.positionX, y: node.positionY}
+				nodes.push(node)
+			}
+			console.log(nodes)
+			// links between frontends and backends
+			for (let i in data.frontendHost) {
+				let nodeId = data.frontendHost[i].id
+				let frontendHostPosition = data.frontendHost[i].position
+				let frontendLinks = data.frontendHost[i].links
+				for (let j in frontendLinks) {
+					let link = {}
+					link.src = nodeId
+					link.dst = frontendLinks[j]
+					link.id = 'link-' + link.src + '-' + link.dst
+					link.startX = frontendHostPosition.x + graphRule.nodeRect.width / 2
+					link.startY = frontendHostPosition.y + graphRule.nodeRect.height
+					for (let k in data.backendHost) {
+						let backendHostId = data.backendHost[k].id
+						let backendHostPosition = data.backendHost[k].position
+						let backendLinks = data.backendHost[k].links
+						for (let m in backendLinks) {
+							if (link.src == backendLinks[m] && link.dst == backendHostId) {
+								link.endX = backendHostPosition.x + graphRule.nodeRect.width / 2 + (m - Math.floor(backendLinks.length / 2)) * 5
+								link.endY = backendHostPosition.y
+							}
+						}
+					}
+					links.push(link)
+				}
+			}
+			// links between backends and servings (one directs one only)
+			for (let i  = 0; i < data.backendHost.length; i++) {
+				let backend = data.backendHost[i]
+				let serving = data.servingHost[i]
+				let link = {}
+				link.src = backend.id
+				link.dst = serving.id
+				link.id = 'link-' + link.src + '-' + link.dst
+				link.startX = backend.position.x + graphRule.nodeRect.width / 2
+				link.startY = backend.position.y + graphRule.nodeRect.height
+				link.endX = serving.position.x + graphRule.nodeRect.width / 2
+				link.endY = serving.position.y
+				links.push(link)
+			}
+		} 
+		// draw graph 
+		function drawNetworkGraph () {
+			console.log(graphRule)
+			let width = graphRule.svg.width
+			let height = graphRule.svg.height
+			let svg = d3.select('#network-graph')
+				.append('svg')
+				.attr('id', 'graph-svg')
+				.attr('width', width)
+				.attr('height', height)
+				.call(d3.behavior.zoom().on('zoom', function () {
+					svg.attr('transform', 'translate(' + d3.event.translate + ')' + 'scale(' + d3.event.scale + ')')
+				}))
+				.append('g')
+			let svgGroup = svg.append('g')
+					.attr('id', 'svg-wrapper')
+			let defs = svgGroup.append('defs')
+			// arrow 
+			let arrowMarker = defs.append('marker')
+						.attr('id', 'arrow')
+						.attr('markerUnits', 'strokeWidth')
+						.attr('markerWidth', '50')
+						.attr('markerHeight', '50')
+						.attr('viewBox', '0 0 50 50')
+						.attr('refX', '10')
+						.attr('refY', '6')
+						.attr('orient', 'auto')
+						.append('path')
+						.attr('d', 'M2,2 L2,11 L10,6 L2,2')
+						.attr('fill', '#0088cc')
+						.attr('stroke', '#0088cc')
+			// images
+			let frontendServer = defs.append('pattern')
+						.attr('id', 'frontend-server')
+						.attr('patterUnits', 'objectBoundingBox')
+						.attr('width', 1)
+						.attr('height', 1)
+						.append('image')
+						.attr('xlink:href', './img/server-network/frontend-server_70.png')
+						.attr('width', 70)
+						.attr('height', 70)
+			let backendServer = defs.append('pattern')
+						.attr('id', 'backend-server')
+						.attr('patterUnits', 'objectBoundingBox')
+						.attr('width', 1)
+						.attr('height', 1)
+						.append('image')
+						.attr('xlink:href', './img/server-network/backend-server_70.png')
+						.attr('width', 70)
+						.attr('height', 70)
+			let servingServer = defs.append('pattern')
+						.attr('id', 'serving-server')
+						.attr('patterUnits', 'objectBoundingBox')
+						.attr('width', 1)
+						.attr('height', 1)
+						.append('image')
+						.attr('xlink:href', './img/server-network/serving-server_70.png')
+						.attr('width', 70)
+						.attr('height', 70)
+			// Internet throughput
+			let svgThroughputGroup = svgGroup.append('g')
+						.attr('id', 'svg-throughput-wrapper')
+			for (let i = 0; i < 4; i++) {
+				let positionX = (graphRule.svg.width - graphRule.throughput.rectWidth * 4 - graphRule.throughput.rectMargin * 3 - graphRule.throughput.arrowEdge * 2) / 2 + (graphRule.throughput.rectWidth + graphRule.throughput.rectMargin) * i
+				let positionY = 20
+				svgThroughputGroup.append('rect')
+					.attr('x', positionX)
+					.attr('y', positionY)
+					.attr('height', graphRule.throughput.rectHeight)
+					.attr('x', positionX)
+					.attr('y', positionY)
+					.attr('height', graphRule.throughput.rectHeight)
+					.attr('width', graphRule.throughput.rectWidth)
+					.attr('class', 'throughput-rect')
+				let triangle_1_X = positionX - graphRule.throughput.arrowEdge
+				let triangle_1_Y = positionY + graphRule.throughput.rectHeight
+				let triangle_2_X = positionX + graphRule.throughput.rectWidth / 2
+				let triangle_2_Y = triangle_1_Y + 20
+				let triangle_3_X = positionX + graphRule.throughput.rectWidth + graphRule.throughput.arrowEdge
+				let triangle_3_Y = positionY + graphRule.throughput.rectHeight
+				let points = triangle_1_X + ',' + triangle_1_Y + ',' + triangle_2_X + ',' + triangle_2_Y + ',' + triangle_3_X + ',' + triangle_3_Y
+				svgThroughputGroup.append('polygon')
+					.attr('points', points)
+					.attr('class', 'triangle')
+			}
+					// draw nodes
+			let svgMainGroup = svgGroup.append('g')
+						.attr('id', 'svg-main-wrapper')
+			for (let i in nodes) {
+				svgMainGroup.append('rect')
+					.attr('x', nodes[i].positionX)
+					.attr('y', nodes[i].positionY)
+					.attr('height', graphRule.nodeRect.height)
+					.attr('width', graphRule.nodeRect.width)
+					.attr('class', function () {
+						return nodes[i].type
+					})
+					.classed('main-rect', true)
+					.attr('fill', function () {
+						let url = ''
+						switch (nodes[i].type) {
+							case 'frontend':
+								url = '#frontend-server'
+								break
+							case 'backend':
+								url = '#backend-server'
+								break
+							case 'serving':
+								url = '#serving-server'
+								break
+							default:
+								break
+						}
+						return 'url(' + url + ')'
+					})
+			}
+			// draw links
+			let lineGenerator = d3.svg.line().interpolate('basis')
+			for (let i in links) {
+				let link = links[i]
+				let points = [
+					[link.startX, link.startY],
+					[link.endX, link.endY]
+				]
+				let pathData = lineGenerator(points)
+				svgMainGroup.append('path')
+					.attr('id', link.id)
+					.attr('d', pathData)
+					.attr('class', 'links')
+					.attr('marker-end', 'url(#arrow)')
+			}
+		}
+
+
+	</script>
+</body>
+</html>
