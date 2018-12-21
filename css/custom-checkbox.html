@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html:charset=UTF-8">
+        <title>custom checkbox</title>
+        <style type="text/css">
+            .custom-checkbox {
+                display: block;
+                position: relative;
+                margin-left: 50px;
+            }
+            .custom-checkbox input {
+                position: absolute;
+                opacity: 0;
+                cursor: pointer;
+                height: 0;
+                width: 0;
+            }
+            .custom-checkbox .checkmark {
+                position: absolute;
+                top: 0;
+                left: -30px;
+                height: 20px;
+                width: 20px;
+                background-color: #696868;
+                border-radius: 2px;
+            }
+            .custom-checkbox .checkmark:hover {
+                background-color: #4c4c4c;
+            }
+            .custom-checkbox .checkmark::after {
+                content: '';
+                position: absolute;
+                display: none;
+                left: 5px;
+                top: 1px;
+                width: 6px;
+                height: 12px;
+                border: solid white;
+                border-width: 0 3px 3px 0;
+                transform: rotate(45deg);
+            }
+            .checkmark:hover::after {
+                display: block;
+                border-color: #b7b5b5;
+            }
+            input:checked ~ .checkmark {
+                background-color: black;
+            }
+            input:checked ~ .checkmark:hover {
+                background-color: black;
+            }
+            input:checked ~ .checkmark::after {
+                display: block;
+            }
+            input:checked ~ .checkmark::after {
+                border-color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <label class="custom-checkbox">Label
+            <input type="checkbox">
+            <span class="checkmark"></span>
+        </label>
+    </body>
+</html>
